@@ -63,8 +63,8 @@ static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 void DSP_Write_Data(uint8_t address, uint8_t data)
 {
-	HAL_SPI_Transmit(&hspi1, &address, 1, 100);
-	HAL_SPI_Transmit(&hspi1, &data, 1, 100);
+	HAL_SPI_Transmit_IT(&hspi1, &address, 1);
+	HAL_SPI_Transmit_IT(&hspi1, &data, 1);
 	
 	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
 	HAL_Delay(1);
@@ -137,13 +137,7 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-		HAL_Delay(250);
-		brightness++;
-		if(brightness > 0xf)
-		{
-			brightness = 0x0;
-		}
-		DSP_Write_Data(0xA, brightness);
+
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -371,6 +365,10 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
   __NOP();
 }
 
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	__NOP();
+}
 /* USER CODE END 4 */
 
 /**
