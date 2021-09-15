@@ -23,16 +23,38 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stdio.h"
+#include "stdlib.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+typedef enum {
+	output,
+	input
+}DIO_ModeTypedef;
 
+typedef enum {
+	none, s1, s2, s3, s4, s5, s6, s7, s8
+}Button_Typedef;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define DATA_INSTRUCTION 		0x1U << 6U
+#define DSP_CONTROL 				0x2U << 6U
+#define ADDRESS_INSTRUCTION 0x3U << 6U
+
+#define TEST_MODE						(DATA_INSTRUCTION | (0x1U << 3U))
+#define NORMAL_MODE					DATA_INSTRUCTION
+#define AUTO_ADDRESS				DATA_INSTRUCTION
+#define FIXED_ADDRESS				(DATA_INSTRUCTION | (0x1U << 2U))
+#define WRITE_DATA					DATA_INSTRUCTION
+#define READ_DATA						(DATA_INSTRUCTION | (0x1U << 1U))
+
+#define DSP_ON							0x1U << 3U
+#define DSP_OFF             0x0U
+#define DSP_DOT							0x1U << 7U
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -41,16 +63,14 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-SPI_HandleTypeDef hspi1;
-
 UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
 
 /* USER CODE BEGIN PV */
-uint8_t transmitedData[] = {'S','T','M','3','2'};
-uint8_t receivedData[5];
+uint8_t numbers[10] = {0x3F, 0x06, 0x9B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -59,29 +79,32 @@ static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
-static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
-void DSP_Write_Data(uint8_t address, uint8_t data)
-{
-	HAL_SPI_Transmit_IT(&hspi1, &address, 1);
-	HAL_SPI_Transmit_IT(&hspi1, &data, 1);
+void DSP_Write_Data(uint8_t data);
+void DSP_7SEG_Data(uint8_t address, uint8_t data);
+uint8_t* DSP_Read_Data(void);
+Button_Typedef DSP_ButtonPressed(void);
+void DSP_Init(void);
+void DIO_Mode(DIO_ModeTypedef mode) {
+	GPIO_InitTypeDef gpio_init = {0};
 	
-	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_SET);
-	HAL_Delay(1);
-	HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
+	switch(mode) {
+		case output:
+			gpio_init.Mode = GPIO_MODE_OUTPUT_OD;
+			gpio_init.Pull = GPIO_PULLUP;
+			gpio_init.Pin = DIO_Pin;
+			gpio_init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+			HAL_GPIO_Init(DIO_GPIO_Port, &gpio_init);
+			break;
+		case input:
+			gpio_init.Mode = GPIO_MODE_INPUT;
+			gpio_init.Pull = GPIO_NOPULL;
+			gpio_init.Pin = DIO_Pin;
+			HAL_GPIO_Init(DIO_GPIO_Port, &gpio_init);
+			break;
+	}
 }
 
-void DSP_Init(uint8_t brightness)
-{
-	DSP_Write_Data(0xC, 0x1);
-	DSP_Write_Data(0x9, 0xFF);
-	DSP_Write_Data(0xB, 0x7);
-	DSP_Write_Data(0xA, brightness);
-	
-	for(uint8_t i = 0x1; i <= 0x8; i++)
-		DSP_Write_Data(i, 0xf);
-	
-}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -120,22 +143,16 @@ int main(void)
   MX_DMA_Init();
   MX_USART2_UART_Init();
   MX_USART1_UART_Init();
-  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
-	HAL_UART_Transmit_DMA(&huart1, transmitedData, 5);
-	HAL_UART_Receive_DMA(&huart1, receivedData, 5);
-	
-	int8_t brightness = 0x0;
-	
-	DSP_Init(brightness);
-	DSP_Write_Data(0x8, 0x9);
-	
+	DSP_Init();
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+		HAL_Delay(250);
+		DSP_ButtonPressed();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -185,44 +202,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI1_Init(void)
-{
-
-  /* USER CODE BEGIN SPI1_Init 0 */
-
-  /* USER CODE END SPI1_Init 0 */
-
-  /* USER CODE BEGIN SPI1_Init 1 */
-
-  /* USER CODE END SPI1_Init 1 */
-  /* SPI1 parameter configuration*/
-  hspi1.Instance = SPI1;
-  hspi1.Init.Mode = SPI_MODE_MASTER;
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
-  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi1.Init.CRCPolynomial = 7;
-  if (HAL_SPI_Init(&hspi1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI1_Init 2 */
-
-  /* USER CODE END SPI1_Init 2 */
-
 }
 
 /**
@@ -327,10 +306,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, LD2_Pin|DIO_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(CS_GPIO_Port, CS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, CLK_Pin|STB_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -345,30 +324,128 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : CS_Pin */
-  GPIO_InitStruct.Pin = CS_Pin;
+  /*Configure GPIO pin : DIO_Pin */
+  GPIO_InitStruct.Pin = DIO_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_OD;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  HAL_GPIO_Init(DIO_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : CLK_Pin STB_Pin */
+  GPIO_InitStruct.Pin = CLK_Pin|STB_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(CS_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+void DSP_Write_Data(uint8_t data)
 {
-  HAL_UART_Transmit(&huart2, receivedData, (sizeof(receivedData)/sizeof(uint8_t)), 100);
+	for(uint8_t i = 0; i < 8; i++) {
+		HAL_GPIO_WritePin(DIO_GPIO_Port, DIO_Pin, ((data >> i) & 0x1) == 0x1 ? GPIO_PIN_SET:GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
+		HAL_Delay(1);
+		HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
+		HAL_Delay(1);
+	}
 }
 
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+void DSP_Init(void)
 {
-  __NOP();
+	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_RESET);
+	HAL_Delay(1);
+	DSP_Write_Data(DSP_CONTROL | DSP_ON | 0x0);
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_SET);
+	HAL_Delay(1);
+	
+	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_RESET);
+	HAL_Delay(1);
+	DSP_Write_Data(NORMAL_MODE | WRITE_DATA | FIXED_ADDRESS);
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_SET);
+	HAL_Delay(1);
+	
+	DSP_7SEG_Data(0x00, numbers[1]);
+	DSP_7SEG_Data(0x02, numbers[0]);
+	DSP_7SEG_Data(0x04, numbers[0]);
+	DSP_7SEG_Data(0x06, numbers[0]);
+	DSP_7SEG_Data(0x08, numbers[1]);
+	DSP_7SEG_Data(0x0A, numbers[0]);
+	DSP_7SEG_Data(0x0C, numbers[0]);
+	DSP_7SEG_Data(0x0E, numbers[0]);
 }
 
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	__NOP();
+void DSP_7SEG_Data(uint8_t address, uint8_t data) {
+	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_RESET);
+	HAL_Delay(1);
+	DSP_Write_Data(ADDRESS_INSTRUCTION | address);
+	HAL_Delay(1);
+	DSP_Write_Data(data);
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_SET);
 }
+
+uint8_t* DSP_Read_Data(void) {
+	uint8_t* data = (uint8_t *) malloc(4 * sizeof(uint8_t));
+	uint8_t temp;
+	uint8_t msg[14];
+	
+	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_RESET);
+	HAL_Delay(1);
+	DSP_Write_Data(NORMAL_MODE | READ_DATA | AUTO_ADDRESS);
+	HAL_Delay(1);
+	
+	DIO_Mode(input);
+	for(uint8_t i = 0; i < 4; i++) {
+		temp = 0x0;
+		for(uint8_t j = 0; j < 8; j++) {
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_RESET);
+			HAL_Delay(1);
+			HAL_GPIO_WritePin(CLK_GPIO_Port, CLK_Pin, GPIO_PIN_SET);
+			HAL_Delay(1);
+			if(HAL_GPIO_ReadPin(DIO_GPIO_Port, DIO_Pin) == 1) {
+				temp |= (0x1 << j);
+			}
+			HAL_Delay(1);
+		}
+		data[i] = temp;
+	}
+	HAL_Delay(1);
+	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_SET);
+	DIO_Mode(output);
+		
+	return data;
+}
+
+Button_Typedef DSP_ButtonPressed(void)
+{
+	uint8_t *data = DSP_Read_Data();
+	Button_Typedef button = none;
+	
+	for(uint8_t j = 0; j < 4; j++) {
+		switch(data[j]) {
+			case 1:
+				button = j+1;
+				break;
+			case 16:
+				button = j + 5;
+		}
+	}
+	
+	uint8_t msg[] = "Button: none\n";
+	if(button != none)
+		sprintf(msg, "Button: S%02d\n", button);
+	
+	HAL_UART_Transmit(&huart2, msg, sizeof(msg)/sizeof(uint8_t), 250);
+	
+	free(data);
+	
+	return button;
+}
+
 /* USER CODE END 4 */
 
 /**
