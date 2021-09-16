@@ -69,7 +69,8 @@ DMA_HandleTypeDef hdma_usart1_rx;
 DMA_HandleTypeDef hdma_usart1_tx;
 
 /* USER CODE BEGIN PV */
-uint8_t numbers[10] = {0x3F, 0x06, 0x9B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
+uint8_t numbers[10] = {0x3F, 0x06, 0x5B, 0x4F, 0x66, 0x6D, 0x7D, 0x07, 0x7F, 0x6F};
+uint8_t dsp_values[8] = {0};
 
 /* USER CODE END PV */
 
@@ -81,29 +82,11 @@ static void MX_USART2_UART_Init(void);
 static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void DSP_Write_Data(uint8_t data);
-void DSP_7SEG_Data(uint8_t address, uint8_t data);
+void DSP_7SEG_Data(uint8_t data[]);
 uint8_t* DSP_Read_Data(void);
 Button_Typedef DSP_ButtonPressed(void);
 void DSP_Init(void);
-void DIO_Mode(DIO_ModeTypedef mode) {
-	GPIO_InitTypeDef gpio_init = {0};
-	
-	switch(mode) {
-		case output:
-			gpio_init.Mode = GPIO_MODE_OUTPUT_OD;
-			gpio_init.Pull = GPIO_PULLUP;
-			gpio_init.Pin = DIO_Pin;
-			gpio_init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-			HAL_GPIO_Init(DIO_GPIO_Port, &gpio_init);
-			break;
-		case input:
-			gpio_init.Mode = GPIO_MODE_INPUT;
-			gpio_init.Pull = GPIO_NOPULL;
-			gpio_init.Pin = DIO_Pin;
-			HAL_GPIO_Init(DIO_GPIO_Port, &gpio_init);
-			break;
-	}
-}
+void DIO_Mode(DIO_ModeTypedef mode);
 
 /* USER CODE END PFP */
 
@@ -145,14 +128,21 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	DSP_Init();
+	Button_Typedef button = none;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		HAL_Delay(250);
-		DSP_ButtonPressed();
+		button = DSP_ButtonPressed();
+		if(button != none) {
+			dsp_values[button-1]++;
+			if(dsp_values[button-1] > 9)
+				dsp_values[button-1] = 0;
+			DSP_7SEG_Data(dsp_values);
+		}
+		
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -368,24 +358,42 @@ void DSP_Init(void)
 	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_SET);
 	HAL_Delay(1);
 	
-	DSP_7SEG_Data(0x00, numbers[1]);
-	DSP_7SEG_Data(0x02, numbers[0]);
-	DSP_7SEG_Data(0x04, numbers[0]);
-	DSP_7SEG_Data(0x06, numbers[0]);
-	DSP_7SEG_Data(0x08, numbers[1]);
-	DSP_7SEG_Data(0x0A, numbers[0]);
-	DSP_7SEG_Data(0x0C, numbers[0]);
-	DSP_7SEG_Data(0x0E, numbers[0]);
+	uint8_t data[8] = {0};
+	DSP_7SEG_Data(data);
 }
 
-void DSP_7SEG_Data(uint8_t address, uint8_t data) {
-	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_RESET);
-	HAL_Delay(1);
-	DSP_Write_Data(ADDRESS_INSTRUCTION | address);
-	HAL_Delay(1);
-	DSP_Write_Data(data);
-	HAL_Delay(1);
-	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_SET);
+void DSP_7SEG_Data(uint8_t data[]) {
+	uint8_t address = 0x0;
+	
+	for(uint8_t i = 0; i < 8; i++, address+=2) {
+		HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_RESET);
+		HAL_Delay(1);
+		DSP_Write_Data(ADDRESS_INSTRUCTION | address);
+		HAL_Delay(1);
+		DSP_Write_Data(numbers[data[i]]);
+		HAL_Delay(1);
+		HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_SET);
+	}
+}
+
+void DIO_Mode(DIO_ModeTypedef mode) {
+	GPIO_InitTypeDef gpio_init = {0};
+	
+	switch(mode) {
+		case output:
+			gpio_init.Mode = GPIO_MODE_OUTPUT_OD;
+			gpio_init.Pull = GPIO_PULLUP;
+			gpio_init.Pin = DIO_Pin;
+			gpio_init.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+			HAL_GPIO_Init(DIO_GPIO_Port, &gpio_init);
+			break;
+		case input:
+			gpio_init.Mode = GPIO_MODE_INPUT;
+			gpio_init.Pull = GPIO_NOPULL;
+			gpio_init.Pin = DIO_Pin;
+			HAL_GPIO_Init(DIO_GPIO_Port, &gpio_init);
+			break;
+	}
 }
 
 uint8_t* DSP_Read_Data(void) {
@@ -434,12 +442,6 @@ Button_Typedef DSP_ButtonPressed(void)
 				button = j + 5;
 		}
 	}
-	
-	uint8_t msg[] = "Button: none\n";
-	if(button != none)
-		sprintf(msg, "Button: S%02d\n", button);
-	
-	HAL_UART_Transmit(&huart2, msg, sizeof(msg)/sizeof(uint8_t), 250);
 	
 	free(data);
 	
