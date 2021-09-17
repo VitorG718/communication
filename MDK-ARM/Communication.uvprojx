@@ -338,7 +338,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32L053xx</Define>
               <Undefine></Undefine>
-              <IncludePath>../Inc;         ../Drivers/STM32L0xx_HAL_Driver/Inc;         ../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy;         ../Drivers/CMSIS/Device/ST/STM32L0xx/Include;         ../Drivers/CMSIS/Include</IncludePath>
+              <IncludePath>../Inc;                ../Drivers/STM32L0xx_HAL_Driver/Inc;                ../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy;                ../Drivers/CMSIS/Device/ST/STM32L0xx/Include;                ../Drivers/CMSIS/Include</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -413,24 +413,9 @@
           <GroupName>Drivers/STM32L0xx_HAL_Driver</GroupName>
           <Files>
             <File>
-              <FileName>stm32l0xx_hal_tim.c</FileName>
+              <FileName>stm32l0xx_hal_spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_tim.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l0xx_hal_tim_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_tim_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l0xx_hal_uart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_uart.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l0xx_hal_uart_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_uart_ex.c</FilePath>
+              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_spi.c</FilePath>
             </File>
             <File>
               <FileName>stm32l0xx_hal.c</FileName>
@@ -496,6 +481,26 @@
               <FileName>stm32l0xx_hal_cortex.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_cortex.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32l0xx_hal_tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_tim.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32l0xx_hal_tim_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_tim_ex.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32l0xx_hal_uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32l0xx_hal_uart_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_uart_ex.c</FilePath>
             </File>
           </Files>
         </Group>
