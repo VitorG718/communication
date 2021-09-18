@@ -55,6 +55,9 @@ typedef enum {
 #define DSP_ON							0x1U << 3U
 #define DSP_OFF             0x0U
 #define DSP_DOT							0x1U << 7U
+
+#define LED_ON 							0x1U
+#define LED_OFF							0x0U
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -90,6 +93,7 @@ void DSP_Read_Data(uint8_t data[4]);
 Button_Typedef DSP_ButtonPressed(void);
 void DSP_Init(void);
 void DIO_Mode(DIO_ModeTypedef mode);
+void LED_Data(uint8_t data[]);
 
 /* USER CODE END PFP */
 
@@ -383,9 +387,14 @@ void DSP_Init(void)
 	
 	uint8_t data[8] = {1,0,0,2,0,3,8,5};
 	DSP_7SEG_Data(data);
+	
+	uint8_t ledData[8] = {LED_OFF};
+	ledData[5] = LED_ON;
+	LED_Data(ledData);
 }
 
-void DSP_7SEG_Data(uint8_t data[]) {
+void DSP_7SEG_Data(uint8_t data[])
+{
 	uint8_t address = 0x0;
 	
 	for(uint8_t i = 0; i < 8; i++, address+=2) {
@@ -396,12 +405,23 @@ void DSP_7SEG_Data(uint8_t data[]) {
 	}
 }
 
+void LED_Data(uint8_t data[])
+{
+	uint8_t address = 0x1;
+	for(uint8_t i = 0; i < 8; i++, address+=2) {
+		HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_RESET);
+		DSP_Write_Data(ADDRESS_INSTRUCTION | address);
+		DSP_Write_Data(data[i]);
+		HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_SET);
+	}
+}
+
 void DSP_Read_Data(uint8_t data[4]) {
 	uint8_t temp;
 	uint8_t msg[14];
 	
 	HAL_GPIO_WritePin(STB_GPIO_Port, STB_Pin, GPIO_PIN_RESET);
-	DSP_Write_Data(DATA_INSTRUCTION | READ_DATA | 0x0);
+	DSP_Write_Data(DATA_INSTRUCTION | READ_DATA );
 	
 	HAL_SPI_Receive(&hspi1, data, 4, 20);
 
